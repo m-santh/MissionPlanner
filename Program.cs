@@ -31,9 +31,97 @@ using Newtonsoft.Json.Serialization;
 using Architecture = System.Runtime.InteropServices.Architecture;
 using Trace = System.Diagnostics.Trace;
 using System.Threading.Tasks;
+using static MissionPlanner.Log.LogIndex;
 
 namespace MissionPlanner
 {
+    public partial class LoginForm : Form
+    {
+        private TextBox usernameTextBox;
+        private TextBox passwordTextBox;
+        private Button loginButton;
+
+        private Int16 failureCount = 0;
+
+        public LoginForm()
+        {
+            InitializeComponent();
+        }
+
+        private void InitializeComponent()
+        {
+            // Create controls
+            usernameTextBox = new TextBox();
+            passwordTextBox = new TextBox();
+            loginButton = new Button();
+
+            // Set properties
+            usernameTextBox.Location = new System.Drawing.Point(50, 50);
+            usernameTextBox.Size = new System.Drawing.Size(200, 20);
+
+            passwordTextBox.Location = new System.Drawing.Point(50, 80);
+            passwordTextBox.Size = new System.Drawing.Size(200, 20);
+            passwordTextBox.PasswordChar = '*';
+
+            loginButton.Location = new System.Drawing.Point(50, 110);
+            loginButton.Size = new System.Drawing.Size(75, 23);
+            loginButton.Text = "Login";
+            loginButton.Click += LoginButton_Click;
+
+            // Add controls to form
+            Controls.Add(usernameTextBox);
+            Controls.Add(passwordTextBox);
+            Controls.Add(loginButton);
+        }
+
+        private void LoginButton_Click(object sender, EventArgs e)
+        {
+            string username = usernameTextBox.Text;
+            string password = passwordTextBox.Text;
+
+            // Validate username and password
+            if (username == "admin" && password == "admin123")
+            {
+                DialogResult = DialogResult.OK;
+            }
+            else
+            {
+                failureCount++;
+                
+                if (failureCount < 3)
+                {
+
+                    MessageBox.Show("Invalid username or password. Please try again.");
+                }
+                else
+                {
+                    DialogResult = DialogResult.Cancel;
+                    MessageBox.Show("Get the correct password. Exiting the application");
+                    Close();
+                    //Environment.Exit(0);
+                }
+                
+            }
+        }
+
+        // Override the OnFormClosing method to handle the form closing event
+        protected void LoginForm_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            //base.OnFormClosing(e);
+
+            // Check if the form is being closed by the user
+            if (e.CloseReason == CloseReason.UserClosing)
+            {
+                // Prevent the form from closing
+                e.Cancel = true;
+
+                DialogResult = DialogResult.Cancel;
+                //this.Close();
+                // Exit the application
+               // Environment.Exit(0);
+            }
+        }
+    }
     public static class Program
     {
         private static readonly ILog log = LogManager.GetLogger(typeof(Program));
@@ -122,7 +210,7 @@ namespace MissionPlanner
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         public static void Start(string[] args)
-        {
+        { 
             Program.args = args;
             Console.WriteLine(
                 "If your error is about Microsoft.DirectX.DirectInput, please install the latest directx redist from here http://www.microsoft.com/en-us/download/details.aspx?id=35 \n\n");
@@ -448,7 +536,14 @@ namespace MissionPlanner
                     }
                 }
             }
+            // Display Login Prompt
+            if(ShowLoginPrompt() != DialogResult.OK)
+            {
+                ShowLoginErrorDialog("Not able to start application.");
+               
+                Environment.Exit(0);
 
+            }
             try
             {
                 Thread.CurrentThread.Name = "Base Thread";
@@ -481,6 +576,17 @@ namespace MissionPlanner
             catch
             {
             }
+        }
+
+        private static DialogResult ShowLoginPrompt()
+        {
+            LoginForm loginForm = new LoginForm();
+            return loginForm.ShowDialog();
+        }
+
+        private static void ShowLoginErrorDialog(string errorMessage)
+        {
+           MessageBox.Show(errorMessage, "Login Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
 
         private static string SerialPort_GetDeviceName(string port)
